@@ -32,6 +32,7 @@ class minesweeper(Frame):
 		self.smiley = PhotoImage(file='./images/smiley.png')
 		self.frowny = PhotoImage(file='./images/frowny.png')
 		self.coolface = PhotoImage(file='./images/cool.png')
+		self.o_face = PhotoImage(file='./images/o-face.png')
 		self.flag = PhotoImage(file='./images/flag.png').subsample(2, 2)
 		self.mine = PhotoImage(file='./images/mine.png').subsample(13, 13)
 
@@ -93,8 +94,9 @@ class minesweeper(Frame):
 		for x in range(30):
 			for y in range(16):
 				self.gridButtons[x][y] = Button(self.gridLF, relief=RAISED, bd=5)
-				self.gridButtons[x][y].bind('<Button-1>', self.onClick)
 				self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
+				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 				if x < 10 and y < 10:
 					self.gridButtons[x][y].place(x=x*23+0, y=y*23+0, width=23, height=23)
 	#########################################################################
@@ -160,9 +162,23 @@ class minesweeper(Frame):
 				event.widget.config(image='')
 				self.flags.set(self.flags.get() + 1)
 
+	def onPress(self, event):
+		self.gameButton.config(image=self.o_face)
+		self.gameButton.image = self.o_face
+		print(event.x, event.y)
+
+	def onRelease(self, event):
+		self.gameButton.config(image=self.smiley)
+		self.gameButton.image = self.smiley
+		print(event.x, event.y)
+		if event.x >= 0 and event.y >= 0 and event.x <= 22 and event.y <= 22:
+			self.onClick(event)
+
 	# Recursive flood-fill algorithm.
 	def discoverNeighbors(self, X, Y, cell):
-		cell.unbind('<Button-1>')
+		cell.unbind('<Button-3>')
+		cell.unbind('<ButtonPress-1>')
+		cell.unbind('<ButtonRelease-1>')
 		if cell['bd'] != 1 and (X, Y) in self.vals[0]:
 			if cell['image'] == 'pyimage5':
 				cell.config(image='')
@@ -184,8 +200,9 @@ class minesweeper(Frame):
 	def gameLose(self):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
-				self.gridButtons[x][y].unbind('<Button-1>')
 				self.gridButtons[x][y].unbind('<Button-3>')
+				self.gridButtons[x][y].unbind('<ButtonPress-1>')
+				self.gridButtons[x][y].unbind('<ButtonRelease-1>')
 				if (x, y) in self.mines:
 					self.gridButtons[x][y].config(image=self.mine)
 					self.gridButtons[x][y].image = self.mine
@@ -204,8 +221,9 @@ class minesweeper(Frame):
 		if discovered_cells == self.Xsize * self.Ysize - len(self.mines):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
-					self.gridButtons[x][y].unbind('<Button-1>')
 					self.gridButtons[x][y].unbind('<Button-3>')
+					self.gridButtons[x][y].unbind('<ButtonPress-1>')
+					self.gridButtons[x][y].unbind('<ButtonRelease-1>')
 			self.gameButton.config(image=self.coolface)
 			self.master.after_cancel(self.loop)
 			self.gameButton.image = self.coolface
@@ -219,8 +237,10 @@ class minesweeper(Frame):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
 					self.gridButtons[x][y].config(relief=RAISED, bd=5, text='', image='', bg=self.original_color)
-					self.gridButtons[x][y].bind('<Button-1>', self.onClick)
+
 					self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+					self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
+					self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 			self.gameButton.config(image=self.smiley)
 			self.gameButton.image = self.smiley
 			self.master.after_cancel(self.loop)
@@ -242,7 +262,7 @@ class minesweeper(Frame):
 			self.master.geometry('394x475')
 			self.replaceCells(16, 16)
 		elif difficulty == 'hard':
-			self.master.geometry('586x475')
+			self.master.geometry('732x475')
 			self.replaceCells(30, 16)
 		self.difficulty = difficulty
 		self.setupGame(self.difficulty)
@@ -252,14 +272,16 @@ class minesweeper(Frame):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place_forget()
-				self.gridButtons[x][y].unbind('<Button-1>')
 				self.gridButtons[x][y].unbind('<Button-3>')
+				self.gridButtons[x][y].unbind('<ButtonPress-1>', self.onPress)
+				self.gridButtons[x][y].unbind('<ButtonRelease-1>', self.onRelease)
 		self.Xsize, self.Ysize = new_x, new_y
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place(x=x*23+0, y=y*23+0, width=23, height=23)
-				self.gridButtons[x][y].bind('<Button-1>', self.onClick)
 				self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
+				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 
 	def quitGame(self):
 		self.master.destroy()
