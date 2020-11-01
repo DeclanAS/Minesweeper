@@ -273,8 +273,8 @@ class minesweeper(Frame):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place_forget()
 				self.gridButtons[x][y].unbind('<Button-3>')
-				self.gridButtons[x][y].unbind('<ButtonPress-1>', self.onPress)
-				self.gridButtons[x][y].unbind('<ButtonRelease-1>', self.onRelease)
+				self.gridButtons[x][y].unbind('<ButtonPress-1>')
+				self.gridButtons[x][y].unbind('<ButtonRelease-1>')
 		self.Xsize, self.Ysize = new_x, new_y
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
