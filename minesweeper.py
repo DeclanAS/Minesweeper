@@ -115,14 +115,14 @@ class minesweeper(Frame):
 		elif difficulty == 'medium':
 			self.flags.set(40)
 			while count < 40:
-				mine = (random.randint(0, 16), random.randint(0, 16))
+				mine = (random.randint(0, 15), random.randint(0, 15))
 				if mine not in self.mines:
 					self.mines.append(mine)
 					count += 1
 		elif difficulty == 'hard':
 			self.flags.set(99)
 			while count < 99:
-				mine = (random.randint(0, 30), random.randint(0, 16))
+				mine = (random.randint(0, 29), random.randint(0, 15))
 				if mine not in self.mines:
 					self.mines.append(mine)
 					count += 1
@@ -132,6 +132,7 @@ class minesweeper(Frame):
 				if (x, y) not in self.mines:
 					val = self.neighborCount(x, y)
 					self.vals[val].append((x, y))
+					self.gridButtons[x][y].config(text=str(val))
 
 	def neighborCount(self, X, Y):
 		value = 0
@@ -165,12 +166,10 @@ class minesweeper(Frame):
 	def onPress(self, event):
 		self.gameButton.config(image=self.o_face)
 		self.gameButton.image = self.o_face
-		print(event.x, event.y)
 
 	def onRelease(self, event):
 		self.gameButton.config(image=self.smiley)
 		self.gameButton.image = self.smiley
-		print(event.x, event.y)
 		if event.x >= 0 and event.y >= 0 and event.x <= 22 and event.y <= 22:
 			self.onClick(event)
 
@@ -237,7 +236,6 @@ class minesweeper(Frame):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
 					self.gridButtons[x][y].config(relief=RAISED, bd=5, text='', image='', bg=self.original_color)
-
 					self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
 					self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
 					self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
