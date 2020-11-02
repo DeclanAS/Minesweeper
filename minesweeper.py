@@ -94,7 +94,7 @@ class minesweeper(Frame):
 		for x in range(30):
 			for y in range(16):
 				self.gridButtons[x][y] = Button(self.gridLF, relief=RAISED, bd=5)
-				self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+				self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
 				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
 				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 				if x < 10 and y < 10:
@@ -103,6 +103,10 @@ class minesweeper(Frame):
 ###########################################################################################
 
 #######################################   Methods   #######################################
+	# Sets up the game by placing 10, 40, or 99 mines randomly on the lattice, then marking
+	# the other cells either 0 (no adjacent mine) to 8 (8 adjacent mines) in an array of
+	# arrays; in which the sub-array's index is the # of neighbors. Ex: (2, 4) in vals[X]
+	# means (2, 4) has X neighboring mine(s).
 	def setupGame(self, difficulty):
 		count, self.mines, self.vals = 0, [], [[], [], [], [], [], [], [], [], []]
 		if difficulty == 'easy':
@@ -132,8 +136,8 @@ class minesweeper(Frame):
 				if (x, y) not in self.mines:
 					val = self.neighborCount(x, y)
 					self.vals[val].append((x, y))
-					self.gridButtons[x][y].config(text=str(val))
 
+	# Counts the number of neighbors given a cell's position.
 	def neighborCount(self, X, Y):
 		value = 0
 		for nx, ny in [(-1, -1), (-1, 0), (-1, 1),
@@ -143,6 +147,8 @@ class minesweeper(Frame):
 				value += 1
 		return value
 
+	# On left click: find the cell's position, and check if it is a mine or a
+	# a number. Then either lose the game, or discover neighboring cells.
 	def onClick(self, event):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
@@ -153,33 +159,39 @@ class minesweeper(Frame):
 					else:
 						self.discoverNeighbors(x, y, event.widget)
 
-	def leftClick(self, event):
+	# On right click: toggle a image of a flag on the cell if the cell has not
+	# been clicked, and if there are greater than 0 flags available.
+	def rightClick(self, event):
 		if event.widget['bd'] != 1:
 			if event.widget['image'] == '' and self.flags.get() > 0:
 				event.widget.config(image=self.flag)
 				event.widget.image = self.flag
 				self.flags.set(self.flags.get() - 1)
-			elif event.widget['image'] == 'pyimage5':
+			elif event.widget['image'] == 'pyimage6':
 				event.widget.config(image='')
 				self.flags.set(self.flags.get() + 1)
 
+	# On left-button press: set the game button's image to an O-face.
 	def onPress(self, event):
 		self.gameButton.config(image=self.o_face)
 		self.gameButton.image = self.o_face
 
+	# On left-button release: revert the image to the smiley. Executes the
+	# left-click function IFF the mouse curser is still on the button.
 	def onRelease(self, event):
 		self.gameButton.config(image=self.smiley)
 		self.gameButton.image = self.smiley
 		if event.x >= 0 and event.y >= 0 and event.x <= 22 and event.y <= 22:
 			self.onClick(event)
 
-	# Recursive flood-fill algorithm.
+	# Recursive flood-fill algorithm: discovers all non-number cells 
+	# left, right, top, and bottom, and all numbered cells on each corner
 	def discoverNeighbors(self, X, Y, cell):
 		cell.unbind('<Button-3>')
 		cell.unbind('<ButtonPress-1>')
 		cell.unbind('<ButtonRelease-1>')
 		if cell['bd'] != 1 and (X, Y) in self.vals[0]:
-			if cell['image'] == 'pyimage5':
+			if cell['image'] == 'pyimage6':
 				cell.config(image='')
 			cell.config(bd=1)
 			if X < self.Xsize - 1:
@@ -196,6 +208,8 @@ class minesweeper(Frame):
 					cell.config(text=str(level), bd=1, fg=self.colors[level-1], font=('Courier', 15, 'bold'), image='')
 		self.checkForWin()
 
+	# If the user clicks on a mine, the game is lost: all cells are unbound
+	# the game buttons image turns into a frowny face, and the timer stops.
 	def gameLose(self):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
@@ -210,6 +224,9 @@ class minesweeper(Frame):
 		self.gameButton.image = self.frowny
 		self.GAME_STATE = 1
 
+	# Counts for the number of discovered cells to determine a win:
+	# If the # of discovered cells equals X * Y - |Mines|.
+	# Example: 30 * 16 - 99 = 381 possible discoverable cells for expert.
 	def checkForWin(self):
 		discovered_cells = 0
 		for x in range(self.Xsize):
@@ -228,6 +245,10 @@ class minesweeper(Frame):
 			self.gameButton.image = self.coolface
 			self.GAME_STATE = 2
 
+	# Resets the game given the game-state:
+	# Gamestate 0 -> No loss, no win.
+	# Gamestate 1 -> Game lost.
+	# Gamestate 2 -> Game won.
 	def resetGame(self):
 		if self.GAME_STATE == 0:
 			return
@@ -236,7 +257,7 @@ class minesweeper(Frame):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
 					self.gridButtons[x][y].config(relief=RAISED, bd=5, text='', image='', bg=self.original_color)
-					self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+					self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
 					self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
 					self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 			self.gameButton.config(image=self.smiley)
@@ -246,10 +267,14 @@ class minesweeper(Frame):
 			self.updateTime()
 			self.GAME_STATE = 0
 
+	# Force reset the game event. (Bound to F2)
 	def forceReset(self, event):
 		self.GAME_STATE = 1
 		self.resetGame()
 
+	# Swaps the difficulty of the game.
+	# Resizes window, replaces cells, changes difficulty variable,
+	# sets up the game, and forces a reset.
 	def changeDifficulty(self, difficulty):
 		if self.difficulty == difficulty:
 			return
@@ -266,6 +291,9 @@ class minesweeper(Frame):
 		self.setupGame(self.difficulty)
 		self.forceReset(Button(self.master))
 
+	# A method to remove the current cells off the gui (place_forget()),
+	# removes the key-binding, and replaces and rebinds them given a new
+	# number of cells.
 	def replaceCells(self, new_x, new_y):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
@@ -277,13 +305,15 @@ class minesweeper(Frame):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place(x=x*23+0, y=y*23+0, width=23, height=23)
-				self.gridButtons[x][y].bind('<Button-3>', self.leftClick)
+				self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
 				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
 				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
 
+	# Quits the game (menu bar function).
 	def quitGame(self):
 		self.master.destroy()
 
+	# Updates the time every 1 second, and stops at 999 seconds.
 	def updateTime(self):
 		if self.curTime.get() == 999:
 			return
