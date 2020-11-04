@@ -1,4 +1,4 @@
-import random
+import random, os
 from tkinter import *
 
 # Author: Declan Sheehan
@@ -22,13 +22,13 @@ class minesweeper(Frame):
 	def init_var(self):
 		# Game variables.
 		self.GAME_STATE = 0
-		self.difficulty = 'easy'
+		self.difficulty = 'Beginner'
 		self.Xsize, self.Ysize = 10, 10
 		self.flags, self.curTime = IntVar(), IntVar()
 		self.loop, self.vals, self.mines, self.original_color = None, None, None, None
 		self.colors = ['#2626F2', '#007B00', '#FF0000', '#00007B', '#7B0000', '#008080', '#0D1110', '#808080']
 
-		# Images used.
+		# Images used. [Cannot be declared as a global variable (too early)]
 		self.smiley = PhotoImage(file='./images/smiley.png')
 		self.frowny = PhotoImage(file='./images/frowny.png')
 		self.coolface = PhotoImage(file='./images/cool.png')
@@ -50,9 +50,9 @@ class minesweeper(Frame):
 
 		# Game options:
 		difficultyBar.add_command(label='New         F2', command=lambda: self.forceReset(Button(self.master)))
-		difficultyBar.add_command(label='Beginner', command=lambda: self.changeDifficulty('easy'))
-		difficultyBar.add_command(label='Intermediate', command=lambda: self.changeDifficulty('medium'))
-		difficultyBar.add_command(label='Expert', command=lambda: self.changeDifficulty('hard'))
+		difficultyBar.add_command(label='Beginner', command=lambda: self.changeDifficulty('Beginner'))
+		difficultyBar.add_command(label='Intermediate', command=lambda: self.changeDifficulty('Intermediate'))
+		difficultyBar.add_command(label='Expert', command=lambda: self.changeDifficulty('Expert'))
 		difficultyBar.add_command(label='Exit', command=self.quitGame)
 
 		# Help bar for aesthetics.
@@ -69,16 +69,20 @@ class minesweeper(Frame):
 	#########################################################################
 	################################## Top Bar ##############################
 	def createTopBar(self):
+		# Create the SUNKEN label frame to hold flag count, game button, & timer.
 		topBarLF = LabelFrame(self.master, relief=SUNKEN, bg='#C0C0C0', bd=5)
 		topBarLF.place(relx=0.025, rely=0.015625, relwidth=0.955, height=45)
 
+		# Add the flag count label to the top bar.
 		self.flagLabel = Label(topBarLF, textvariable=self.flags)
 		self.flagLabel.place(relx=0.06, y=3, relwidth=0.2, height=30)
 
+		# Add the game button to the top bar.
 		self.gameButton = Button(topBarLF, image=self.smiley, relief=RAISED, bd=4, command=self.resetGame)
-		self.gameButton.place(relx=0.425, y=1, relwidth=0.14, height=35)
+		self.gameButton.place(relx=0.425, y=1, relwidth=0.145, height=35)
 		self.gameButton.image = self.smiley
 
+		# Add a timer label to the top bar.
 		self.timeLabel = Label(topBarLF, textvariable=self.curTime)
 		self.timeLabel.place(relx=0.74, y=3, relwidth=0.2, height=30)
 		self.original_color = self.gameButton.cget('background')
@@ -86,17 +90,16 @@ class minesweeper(Frame):
 
 	################################# Mine Field ############################
 	def createGrid(self):
+		# Create a SUNKEN label frame to hold the cells.
 		self.gridLF = LabelFrame(self.master, relief=SUNKEN, bg='#C9C9C9', bd=4)
 		self.gridLF.place(relx=0.025, rely=0.171875, relwidth=0.952, relheight=0.79)
-
 		self.gridButtons = [[0 for y in range(16)] for x in range(30)]
 
+		# Place all of them onto the label frame.
 		for x in range(30):
 			for y in range(16):
 				self.gridButtons[x][y] = Button(self.gridLF, relief=RAISED, bd=5)
-				self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
-				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
-				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
+				self.bindAll(self.gridButtons[x][y])
 				if x < 10 and y < 10:
 					self.gridButtons[x][y].place(x=x*23+0, y=y*23+0, width=23, height=23)
 	#########################################################################
@@ -109,21 +112,21 @@ class minesweeper(Frame):
 	# means (2, 4) has X neighboring mine(s).
 	def setupGame(self, difficulty):
 		count, self.mines, self.vals = 0, [], [[], [], [], [], [], [], [], [], []]
-		if difficulty == 'easy':
+		if difficulty == 'Beginner':
 			self.flags.set(10)
 			while count < 10:
 				mine = (random.randint(0, 9), random.randint(0, 9))
 				if mine not in self.mines:
 					self.mines.append(mine)
 					count += 1
-		elif difficulty == 'medium':
+		elif difficulty == 'Intermediate':
 			self.flags.set(40)
 			while count < 40:
 				mine = (random.randint(0, 15), random.randint(0, 15))
 				if mine not in self.mines:
 					self.mines.append(mine)
 					count += 1
-		elif difficulty == 'hard':
+		elif difficulty == 'Expert':
 			self.flags.set(99)
 			while count < 99:
 				mine = (random.randint(0, 29), random.randint(0, 15))
@@ -156,6 +159,8 @@ class minesweeper(Frame):
 					if (x, y) in self.mines:
 						self.gridButtons[x][y].config(bg='#FF0000')
 						self.gameLose()
+					elif self.gridButtons[x][y]['image'] == 'pyimage6':
+						pass
 					else:
 						self.discoverNeighbors(x, y, event.widget)
 
@@ -187,25 +192,36 @@ class minesweeper(Frame):
 	# Recursive flood-fill algorithm: discovers all non-number cells 
 	# left, right, top, and bottom, and all numbered cells on each corner
 	def discoverNeighbors(self, X, Y, cell):
-		cell.unbind('<Button-3>')
-		cell.unbind('<ButtonPress-1>')
-		cell.unbind('<ButtonRelease-1>')
+		self.unbindAll(cell)
 		if cell['bd'] != 1 and (X, Y) in self.vals[0]:
 			if cell['image'] == 'pyimage6':
-				cell.config(image='')
-			cell.config(bd=1)
-			if X < self.Xsize - 1:
-				self.discoverNeighbors(X+1, Y, self.gridButtons[X+1][Y])
-			if X > 0:
-				self.discoverNeighbors(X-1, Y, self.gridButtons[X-1][Y])
-			if Y < self.Ysize - 1:
-				self.discoverNeighbors(X, Y+1, self.gridButtons[X][Y+1])
-			if Y > 0:
-				self.discoverNeighbors(X, Y-1, self.gridButtons[X][Y-1])
+				self.bindAll(cell)
+				self.gameButton.config(image=self.smiley)
+			else:
+				cell.config(bd=1)
+				if X < self.Xsize - 1:
+					self.discoverNeighbors(X+1, Y, self.gridButtons[X+1][Y])
+				if X > 0:
+					self.discoverNeighbors(X-1, Y, self.gridButtons[X-1][Y])
+				if Y < self.Ysize - 1:
+					self.discoverNeighbors(X, Y+1, self.gridButtons[X][Y+1])
+				if Y > 0:
+					self.discoverNeighbors(X, Y-1, self.gridButtons[X][Y-1])
+				if X < self.Xsize - 1 and Y < self.Ysize - 1:
+					self.discoverNeighbors(X+1, Y+1, self.gridButtons[X+1][Y+1])
+				if X > 0 and Y > 0:
+					self.discoverNeighbors(X-1, Y-1, self.gridButtons[X-1][Y-1])
+				if X < self.Xsize - 1 and Y > 0:
+					self.discoverNeighbors(X+1, Y-1, self.gridButtons[X+1][Y-1])
+				if X > 0 and Y < self.Ysize - 1:
+					self.discoverNeighbors(X-1, Y+1, self.gridButtons[X-1][Y+1])
 		elif cell['bd'] != 1 and (X, Y) not in self.mines:
-			for level in range(len(self.vals)):
-				if (X, Y) in self.vals[level]:
-					cell.config(text=str(level), bd=1, fg=self.colors[level-1], font=('Courier', 15, 'bold'), image='')
+			if cell['image'] == 'pyimage6':
+				self.bindAll(cell)
+			else:
+				for level in range(len(self.vals)):
+					if (X, Y) in self.vals[level]:
+						cell.config(text=str(level), bd=1, fg=self.colors[level-1], font=('Courier', 15, 'bold'), image='')
 		self.checkForWin()
 
 	# If the user clicks on a mine, the game is lost: all cells are unbound
@@ -213,9 +229,7 @@ class minesweeper(Frame):
 	def gameLose(self):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
-				self.gridButtons[x][y].unbind('<Button-3>')
-				self.gridButtons[x][y].unbind('<ButtonPress-1>')
-				self.gridButtons[x][y].unbind('<ButtonRelease-1>')
+				self.unbindAll(self.gridButtons[x][y])
 				if (x, y) in self.mines:
 					self.gridButtons[x][y].config(image=self.mine)
 					self.gridButtons[x][y].image = self.mine
@@ -237,13 +251,12 @@ class minesweeper(Frame):
 		if discovered_cells == self.Xsize * self.Ysize - len(self.mines):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
-					self.gridButtons[x][y].unbind('<Button-3>')
-					self.gridButtons[x][y].unbind('<ButtonPress-1>')
-					self.gridButtons[x][y].unbind('<ButtonRelease-1>')
+					self.unbindAll(self.gridButtons[x][y])
 			self.gameButton.config(image=self.coolface)
 			self.master.after_cancel(self.loop)
 			self.gameButton.image = self.coolface
 			self.GAME_STATE = 2
+			self.saveScore()
 
 	# Resets the game given the game-state:
 	# Gamestate 0 -> No loss, no win.
@@ -257,9 +270,7 @@ class minesweeper(Frame):
 			for x in range(self.Xsize):
 				for y in range(self.Ysize):
 					self.gridButtons[x][y].config(relief=RAISED, bd=5, text='', image='', bg=self.original_color)
-					self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
-					self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
-					self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
+					self.bindAll(self.gridButtons[x][y])
 			self.gameButton.config(image=self.smiley)
 			self.gameButton.image = self.smiley
 			self.master.after_cancel(self.loop)
@@ -278,13 +289,13 @@ class minesweeper(Frame):
 	def changeDifficulty(self, difficulty):
 		if self.difficulty == difficulty:
 			return
-		if difficulty == 'easy':
+		if difficulty == 'Beginner':
 			self.master.geometry('250x300')
 			self.replaceCells(10, 10)
-		elif difficulty == 'medium':
+		elif difficulty == 'Intermediate':
 			self.master.geometry('394x475')
 			self.replaceCells(16, 16)
-		elif difficulty == 'hard':
+		elif difficulty == 'Expert':
 			self.master.geometry('732x475')
 			self.replaceCells(30, 16)
 		self.difficulty = difficulty
@@ -298,20 +309,43 @@ class minesweeper(Frame):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place_forget()
-				self.gridButtons[x][y].unbind('<Button-3>')
-				self.gridButtons[x][y].unbind('<ButtonPress-1>')
-				self.gridButtons[x][y].unbind('<ButtonRelease-1>')
+				self.unbindAll(self.gridButtons[x][y])
 		self.Xsize, self.Ysize = new_x, new_y
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				self.gridButtons[x][y].place(x=x*23+0, y=y*23+0, width=23, height=23)
-				self.gridButtons[x][y].bind('<Button-3>', self.rightClick)
-				self.gridButtons[x][y].bind('<ButtonPress-1>', self.onPress)
-				self.gridButtons[x][y].bind('<ButtonRelease-1>', self.onRelease)
+				self.bindAll(self.gridButtons[x][y])
+
+	# Simple method to add 3 different binds to a cell.
+	def bindAll(self, cell):
+		cell.bind('<Button-3>', self.rightClick)
+		cell.bind('<ButtonPress-1>', self.onPress)
+		cell.bind('<ButtonRelease-1>', self.onRelease)
+
+	# Simple method to remove 3 different binds to a cell.
+	def unbindAll(self, cell):
+		cell.unbind('<Button-3>')
+		cell.unbind('<ButtonPress-1>')
+		cell.unbind('<ButtonRelease-1>')
 
 	# Quits the game (menu bar function).
 	def quitGame(self):
 		self.master.destroy()
+
+	def saveScore(self):
+		fd = None
+		if not os.path.isfile('./Scoreboard.txt'):
+			fd = open('./Scoreboard.txt', 'a+')
+			fd.write('DIFFICULTY     -   SCORE\n')
+		else:
+			fd = open('./Scoreboard.txt', 'a+')
+		if self.difficulty == 'Beginner':
+			fd.write(self.difficulty + '       -   ' + str(self.curTime.get()) + '\n')
+		elif self.difficulty == 'Intermediate':
+			fd.write(self.difficulty + '   -   ' + str(self.curTime.get()) + '\n')
+		elif self.difficulty == 'Expert':
+			fd.write(self.difficulty + '         -   ' + str(self.curTime.get()) + '\n')
+		fd.close()
 
 	# Updates the time every 1 second, and stops at 999 seconds.
 	def updateTime(self):
