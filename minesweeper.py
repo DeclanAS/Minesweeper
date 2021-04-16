@@ -156,11 +156,11 @@ class minesweeper(Frame):
 		for x in range(self.Xsize):
 			for y in range(self.Ysize):
 				if self.gridButtons[x][y] == event.widget:
-					if (x, y) in self.mines:
+					if self.gridButtons[x][y]['image'] == 'pyimage6':
+						pass
+					elif (x, y) in self.mines:
 						self.gridButtons[x][y].config(bg='#FF0000')
 						self.gameLose()
-					elif self.gridButtons[x][y]['image'] == 'pyimage6':
-						pass
 					else:
 						self.discoverNeighbors(x, y, event.widget)
 
